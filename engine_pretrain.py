@@ -45,11 +45,13 @@ def train_one_epoch(model: torch.nn.Module,
         samples = samples.to(device, non_blocking=True)
         gray_samples = gray_samples.to(device, non_blocking=True)
         
-        print(f'rgb sample {samples.shape}')
-        print(f'gray sample {gray_samples.shape}')
+        # print(f'rgb sample {samples.shape}')
+        # print(f'gray sample {gray_samples.shape}')
 
         with torch.cuda.amp.autocast():
             loss, _, _ = model(gray_samples, samples, mask_ratio=args.mask_ratio)
+            # modify
+            # loss, _, _ = model(samples, samples, mask_ratio=args.mask_ratio)
 
         loss_value = loss.item()
 

@@ -1,1 +1,1 @@
-OMP_NUM_THREADS=1 torchrun --nproc_per_node=2 main_pretrain.py --batch_size 2 --world_size 2 --accum_iter 4 --model mae_vit_base_patch16 --mask_ratio 0.0 --epochs 800 --warmup_epochs 40 --blr 1.5e-4 --weight_decay 0.05 --data_path ./data
+OMP_NUM_THREADS=1 torchrun --nproc_per_node=2 main_pretrain.py --batch_size 2 --world_size 2 --model mae_vit_base_patch16 --mask_ratio 0.05 --epochs 80000 --warmup_epochs 40 --blr 1.5e-4 --weight_decay 0.05 --data_path ./data

@@ -20,7 +20,7 @@ class Gray2RGBDataset(Dataset):
         self.transform = transform
         self.gray_transform = transforms.Grayscale(num_output_channels=1)
         self.normal = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        self.gray_normal = transforms.Normalize(mean=[0.485], std=[0.224])
+        self.gray_normal = transforms.Normalize(mean=[0.299*0.485+0.587*0.456+0.114*0.406], std=[0.299*0.299+0.587*0.224+0.114*0.225])
 
     def __len__(self):
         return len(self.image_lst)
