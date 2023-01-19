@@ -4,6 +4,16 @@ from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
 
+def get_img_lst(root_dir):
+    img_lst = []
+    class_name_lst = os.listdir(root_dir)
+    for class_name in class_name_lst:
+        temp_img_lst = os.listdir(os.path.join(root_dir, class_name))
+        for img_name in temp_img_lst:
+            img_lst.append(os.path.join(root_dir, class_name,img_name))
+    return img_lst
+    
+
 class Gray2RGBDataset(Dataset):
     """Face Landmarks dataset."""
 
@@ -16,7 +26,7 @@ class Gray2RGBDataset(Dataset):
         """
         self.root_dir = root_dir
         self.transform = transform
-        self.image_lst = os.listdir(self.root_dir)
+        self.image_lst = get_img_lst(self.root_dir)
         self.transform = transform
         self.gray_transform = transforms.Grayscale(num_output_channels=1)
         self.normal = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -26,8 +36,8 @@ class Gray2RGBDataset(Dataset):
         return len(self.image_lst)
 
     def __getitem__(self, idx):
-        img_name = self.image_lst[idx]
-        with Image.open(os.path.join(self.root_dir, img_name)) as img:
+        img_path = self.image_lst[idx]
+        with Image.open(img_path) as img:
             image = img.convert('RGB')
         if self.transform:
             image = self.transform(image)
