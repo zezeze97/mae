@@ -17,7 +17,7 @@ def get_img_lst(root_dir):
 class Gray2RGBDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, root_dir, transform, normal, gray_normal):
+    def __init__(self, root_dir, transform, normal, gray_normal, eval_mode=False):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -26,11 +26,15 @@ class Gray2RGBDataset(Dataset):
         """
         self.root_dir = root_dir
         self.transform = transform
-        self.image_lst = get_img_lst(self.root_dir)
+        if eval_mode:
+            img_name_lst = os.listdir(self.root_dir)
+            self.image_lst = [os.path.join(self.root_dir, img_name) for img_name in img_name_lst]
+        else:
+            self.image_lst = get_img_lst(self.root_dir)
         self.transform = transform
         self.gray_transform = transforms.Grayscale(num_output_channels=1)
-        self.normal = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        self.gray_normal = transforms.Normalize(mean=[0.299*0.485+0.587*0.456+0.114*0.406], std=[0.299*0.299+0.587*0.224+0.114*0.225])
+        self.normal = normal
+        self.gray_normal = gray_normal
 
     def __len__(self):
         return len(self.image_lst)

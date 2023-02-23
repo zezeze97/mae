@@ -1,0 +1,15 @@
+OMP_NUM_THREADS=1 python -m torch.distributed.launch --nproc_per_node=2 main_finetune.py \
+    --accum_iter 4 \
+    --batch_size 32 \
+    --model vit_base_patch16 \
+    --cls_token \
+    --finetune ./pretrained_ckpt/checkpoint-799.pth \
+    --epochs 100 \
+    --blr 1e-3 --layer_decay 0.65 \
+    --weight_decay 0.05 --drop_path 0.1 \
+    --dist_eval \
+    --data_path data/images \
+    --nb_classes 14 \
+    --image_info ./data/Data_Entry_2017.csv \
+    --train_split ./data/train_val_list.txt \
+    --val_split ./data/test_list.txt

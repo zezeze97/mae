@@ -129,7 +129,7 @@ def main(args):
             ])
     
     normal = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    gray_normal = transforms.Normalize(mean=[0.485], std=[0.224])
+    gray_normal = transforms.Normalize(mean=[0.299*0.485+0.587*0.456+0.114*0.406], std=[0.299*0.299+0.587*0.224+0.114*0.225])
     # dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
     dataset_train = Gray2RGBDataset(os.path.join(args.data_path, 'train'), transform_train, normal, gray_normal)
     print(dataset_train)

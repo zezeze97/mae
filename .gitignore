@@ -1,5 +1,12 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 output_dir/
+cls_output_dir/
 data/
+pretrained_ckpt/
+.kaggle/
+cls_output_dir_gray2rgb/
+.vscode/
+mae_colorization_output/
+cls_output_dir_baseline/
 
