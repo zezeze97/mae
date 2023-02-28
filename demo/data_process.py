@@ -1,6 +1,7 @@
 import os
 import shutil
 import pandas as pd
+import random
 
 def move_image(data_root_path):
     data_paths = []
@@ -16,14 +17,25 @@ def move_image(data_root_path):
             print(f'Moving {src} to {target}...')
             shutil.move(src, target)
         shutil.rmtree(os.path.join(data_root_path, dir))
+    
+def split_data(ori_path, target_path, num):
+    with open(ori_path, 'r') as f:
+        train_val_lst = f.readlines()
+    select = random.sample(train_val_lst, num)
+    with open(target_path, 'w') as f:
+        for item in select:
+            f.write(item)
 
     
     
     
 
 if __name__ == '__main__':
-    move_image('./data')
-    # create_train_val_info('./data')
-    # print(len(os.listdir('./data/images')))
+    # move_image('./data')
+    num = 1000
+    split_data('data/train_val_list.txt',
+               f'data/train_sample_{num}.txt',
+                num
+    )
             
     
