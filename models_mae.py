@@ -25,7 +25,7 @@ class MaskedAutoencoderViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_chans=1, out_chans=3,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False, prob_color=False):
         super().__init__()
 
         # --------------------------------------------------------------------------
@@ -34,6 +34,12 @@ class MaskedAutoencoderViT(nn.Module):
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.prob_color = prob_color
+        if self.prob_color:
+            self.prob_color_mean_proj = nn.Linear(decoder_embed_dim, decoder_embed_dim, bias=True)
+            self.prob_color_var_proj = nn.Sequential(nn.Linear(decoder_embed_dim, decoder_embed_dim, bias=True),
+                                                     nn.ReLU(inplace=True)) 
+            self.normal_sampler = torch.distributions.Normal(torch.zeros(decoder_embed_dim), torch.ones(decoder_embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False)  # fixed sin-cos embedding
 
         self.blocks = nn.ModuleList([
@@ -172,12 +178,20 @@ class MaskedAutoencoderViT(nn.Module):
     def forward_decoder(self, x, ids_restore):
         # embed tokens
         x = self.decoder_embed(x)
+        cls_token = x[:, :1, :]
+        if self.prob_color:
+            color_mean = self.prob_color_mean_proj(cls_token)
+            color_var = self.prob_color_var_proj(cls_token)
+            noise = self.normal_sampler.sample(sample_shape=(cls_token.shape[0],)).to(color_mean.device).unsqueeze(1)
+            noise.requires_grad = False
+            cls_token = color_mean +  noise * color_var
+            
 
         # append mask tokens to sequence
         mask_tokens = self.mask_token.repeat(x.shape[0], ids_restore.shape[1] + 1 - x.shape[1], 1)
         x_ = torch.cat([x[:, 1:, :], mask_tokens], dim=1)  # no cls token
         x_ = torch.gather(x_, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, x.shape[2]))  # unshuffle
-        x = torch.cat([x[:, :1, :], x_], dim=1)  # append cls token
+        x = torch.cat([cls_token, x_], dim=1)  # append cls token
 
         # add pos embed
         x = x + self.decoder_pos_embed
@@ -245,8 +259,19 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
 
+# add
+def mae_vit_base_patch16_prob_color_dec512d8b(**kwargs):
+    model = MaskedAutoencoderViT(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), prob_color=True, **kwargs)
+    return model
+
 
 # set recommended archs
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
+
+# add
+mae_vit_base_patch16_prob_color = mae_vit_base_patch16_prob_color_dec512d8b
