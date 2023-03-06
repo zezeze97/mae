@@ -182,8 +182,9 @@ class MaskedAutoencoderViT(nn.Module):
         if self.prob_color:
             color_mean = self.prob_color_mean_proj(cls_token)
             color_var = self.prob_color_var_proj(cls_token)
-            noise = self.normal_sampler.sample(sample_shape=(cls_token.shape[0],)).to(color_mean.device).unsqueeze(1)
-            noise.requires_grad = False
+            with torch.no_grad():
+                noise = self.normal_sampler.sample(sample_shape=(cls_token.shape[0],)).to(color_mean.device).unsqueeze(1)
+                noise.requires_grad = False
             cls_token = color_mean +  noise * color_var
             
 
