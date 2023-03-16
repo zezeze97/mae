@@ -65,7 +65,7 @@ def get_args_parser():
 
     parser.add_argument('--output_dir', default='./output_dir_pretrained_gan_style',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default='./output_dir',
+    parser.add_argument('--log_dir', default='./output_dir_pretrained_gan_style',
                         help='path where to tensorboard log')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -182,7 +182,7 @@ def main(args):
     print(f'optimizer_d is {optimizer_d}')
     loss_scaler = NativeScaler()
     
-    loss_d = torch.nn.BCELoss()
+    d_loss_fun = torch.nn.BCEWithLogitsLoss()
 
     # not support for resume
     # misc.load_model(args=args, model_without_ddp=model_g_without_ddp, optimizer=optimizer_g, loss_scaler=loss_scaler)
@@ -195,7 +195,7 @@ def main(args):
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             model_g, model_d, data_loader_train,
-            optimizer_g, optimizer_d, loss_d, device, epoch, loss_scaler,
+            optimizer_g, optimizer_d, d_loss_fun, device, epoch, loss_scaler,
             log_writer=log_writer,
             args=args
         )

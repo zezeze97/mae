@@ -20,12 +20,13 @@ def train_one_epoch(model_g: torch.nn.Module,
                     data_loader: Iterable, 
                     optimizer_g: torch.optim.Optimizer,
                     optimizer_d: torch.optim.Optimizer,
-                    loss_d: torch.nn.BCELoss,
+                    d_loss_fun: torch.nn.BCELoss,
                     device: torch.device, epoch: int, loss_scaler,
                     log_writer=None,
                     args=None):
     metric_logger = misc.MetricLogger(delimiter="  ")
-    metric_logger.add_meter('lr', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger.add_meter('lr_g', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger.add_meter('lr_d', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 20
 
@@ -52,10 +53,11 @@ def train_one_epoch(model_g: torch.nn.Module,
             model_g.train()
             model_d.eval()
             loss_reconstruction, pred, _ = model_g(gray_samples, samples, mask_ratio=args.mask_ratio)
-            pred = model_g.unpatchify(pred)
+            pred = model_g.module.unpatchify(pred)
             
             d_score = model_d(pred)
-            loss_classify = loss_d(d_score, 1)
+            target = d_score.new_full(size=d_score.size(), fill_value=1.0)
+            loss_classify = d_loss_fun(d_score, target)
             loss_g = loss_reconstruction + loss_classify
             
             # modify
@@ -97,13 +99,20 @@ def train_one_epoch(model_g: torch.nn.Module,
             
             with torch.no_grad():
                 loss_reconstruction, pred, _ = model_g(gray_samples, samples, mask_ratio=args.mask_ratio)
-                pred = model_g.unpatchify(pred)
-            pred = pred.detach()
+                pred = model_g.module.unpatchify(pred)
+            pred = pred.clone().detach()
+            pred.requires_grad_(True)
             d_score_fake = model_d(pred)
-            loss_classify_fake = loss_d(d_score_fake, 0)
-            d_score_real = model_d(samples)
-            loss_classify_real = loss_d(d_score_real, 1)
+            target_a = d_score_fake.new_full(size=d_score_fake.size(), fill_value=0.0)
+            loss_classify_fake = d_loss_fun(d_score_fake, target_a)
+            loss_scaler(loss_classify_fake, optimizer_d, parameters=model_d.parameters(),
+                    update_grad=True)
             
+            d_score_real = model_d(samples)
+            target_b = d_score_real.new_full(size=d_score_real.size(), fill_value=1.0)
+            loss_classify_real = d_loss_fun(d_score_real, target_b)
+            loss_scaler(loss_classify_real, optimizer_d, parameters=model_d.parameters(),
+                    update_grad=True)
             loss_d = loss_classify_fake + loss_classify_real
             
             # modify
@@ -115,8 +124,9 @@ def train_one_epoch(model_g: torch.nn.Module,
             print("Loss g step is {}, stopping training".format(loss_d_value))
             sys.exit(1)
 
-        loss_scaler(loss_d, optimizer_d, parameters=model_d.parameters(),
-                    update_grad=True)
+        
+        
+
 
         torch.cuda.synchronize()
 
